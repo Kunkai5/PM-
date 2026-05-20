@@ -1,0 +1,960 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>印尼廠區專案進度管理表 一鍵導入應用</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+/* ========== 你的原始 UI 完全沒動 ========== */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "微軟正黑體", sans-serif;
+}
+body {
+    background-color: #0f172a;
+    color: #f8fafc;
+    min-height: 100vh;
+    padding: 20px;
+    transition: background 0.3s, color 0.3s;
+}
+.container {
+    max-width: 1400px;
+    margin: 0 auto;
+}
+.header {
+    text-align: center;
+    margin-bottom: 30px;
+    padding: 20px;
+    background-color: #1e293b;
+    border-radius: 12px;
+    border: 1px solid #334155;
+}
+.header h1 {
+    font-size: 28px;
+    font-weight: 700;
+    color: #38bdf8;
+    margin-bottom: 10px;
+}
+.header p {
+    font-size: 14px;
+    color: #94a3b8;
+}
+.upload-section {
+    background-color: #1e293b;
+    border-radius: 12px;
+    padding: 30px;
+    margin-bottom: 30px;
+    border: 2px dashed #475569;
+    text-align: center;
+    transition: all 0.3s ease;
+}
+.upload-section:hover {
+    border-color: #38bdf8;
+    background-color: #1e293b80;
+}
+.upload-section input {
+    display: none;
+}
+.upload-btn {
+    background-color: #38bdf8;
+    color: #0f172a;
+    border: none;
+    padding: 14px 40px;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin-bottom: 15px;
+}
+.upload-btn:hover {
+    background-color: #0ea5e9;
+    transform: translateY(-2px);
+}
+.upload-text {
+    font-size: 14px;
+    color: #94a3b8;
+}
+.config-section {
+    background-color: #1e293b;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 30px;
+    border: 1px solid #334155;
+    display: none;
+}
+.config-section.show {
+    display: block;
+}
+.config-title {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 15px;
+    color: #f8fafc;
+}
+.config-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    margin-bottom: 20px;
+}
+.config-item {
+    display: flex;
+    flex-direction: column;
+}
+.config-item label {
+    font-size: 12px;
+    color: #94a3b8;
+    margin-bottom: 5px;
+}
+.config-item input, .config-item select {
+    padding: 8px 12px;
+    border-radius: 6px;
+    border: 1px solid #334155;
+    background-color: #0f172a;
+    color: #f8fafc;
+    font-size: 14px;
+}
+.process-btn {
+    background-color: #10b981;
+    color: #0f172a;
+    border: none;
+    padding: 12px 30px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+.process-btn:hover {
+    background-color: #059669;
+}
+.preview-section {
+    background-color: #1e293b;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 30px;
+    border: 1px solid #334155;
+    display: none;
+}
+.preview-section.show {
+    display: block;
+}
+.preview-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+.preview-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: #f8fafc;
+}
+.export-btn {
+    background-color: #8b5cf6;
+    color: #fff;
+    border: none;
+    padding: 12px 30px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+.export-btn:hover {
+    background-color: #7c3aed;
+}
+.table-wrapper {
+    overflow-x: auto;
+    border-radius: 8px;
+    border: 1px solid #334155;
+}
+.preview-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+.preview-table thead {
+    background-color: #0f172a;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+.preview-table th {
+    padding: 12px 10px;
+    text-align: left;
+    font-size: 12px;
+    font-weight: 600;
+    color: #94a3b8;
+    border-bottom: 1px solid #334155;
+    white-space: nowrap;
+}
+.preview-table td {
+    padding: 10px;
+    font-size: 13px;
+    color: #f8fafc;
+    border-bottom: 1px solid #1e293b;
+    white-space: nowrap;
+}
+.preview-table tbody tr:hover {
+    background-color: #0f172a80;
+}
+.status-badge {
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+}
+.status-normal {
+    background-color: #065f46;
+    color: #6ee7b7;
+}
+.status-delay {
+    background-color: #7f1d1d;
+    color: #fca5a5;
+}
+.status-early {
+    background-color: #1e3a8a;
+    color: #93c5fd;
+}
+/* 未填寫狀態 黃色標註 */
+.status-unfill {
+    background-color: #f59e0b;
+    color: #0f172a;
+}
+.loading {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: #0f172a80;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+.loading.show {
+    display: flex;
+}
+.loading-spinner {
+    width: 50px;
+    height: 50px;
+    border: 4px solid #334155;
+    border-top: 4px solid #38bdf8;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+.toast {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    padding: 15px 25px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    z-index: 1001;
+    transform: translateX(120%);
+    transition: all 0.3s ease;
+}
+.toast.show {
+    transform: translateX(0);
+}
+.toast-success {
+    background-color: #065f46;
+    color: #6ee7b7;
+}
+.toast-error {
+    background-color: #7f1d1d;
+    color: #fca5a5;
+}
+
+body.light {
+    background: #f8fafc;
+    color: #1e293b;
+}
+body.light .header,
+body.light .upload-section,
+body.light .config-section,
+body.light .preview-section {
+    background: #ffffff;
+    color: #1e293b;
+}
+body.light .preview-table th {
+    background: #f1f5f9;
+    color: #475569;
+}
+body.light .preview-table td {
+    color: #1e293b;
+}
+#themeToggle {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 8px 16px;
+    border-radius: 999px;
+    border: none;
+    cursor: pointer;
+    z-index: 9999;
+}
+
+/* 配置按鈕樣式 */
+.config-edit-btn {
+    padding: 6px 12px;
+    background-color: #f59e0b;
+    color: #0f172a;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    margin-left: 10px;
+}
+.config-edit-btn:hover {
+    background-color: #d97706;
+}
+
+/* 配置彈窗樣式 */
+.config-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: #0f172a80;
+    justify-content: center;
+    align-items: center;
+    z-index: 2000;
+}
+.config-modal.show {
+    display: flex;
+}
+.config-modal-content {
+    background-color: #1e293b;
+    border-radius: 12px;
+    padding: 20px;
+    width: 90%;
+    max-width: 700px;
+    max-height: 80vh;
+    overflow-y: auto;
+    border: 1px solid #334155;
+}
+.config-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+.config-modal-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: #f8fafc;
+}
+.config-modal-actions {
+    display: flex;
+    gap: 10px;
+}
+.config-modal-close, .config-modal-reset {
+    padding: 6px 12px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+}
+.config-modal-close {
+    background-color: #dc2626;
+    color: #fff;
+}
+.config-modal-reset {
+    background-color: #6b7280;
+    color: #fff;
+}
+.config-modal-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+.config-modal-item {
+    display: grid;
+    grid-template-columns: 80px 1fr;
+    gap: 15px;
+    align-items: center;
+    padding: 10px;
+    border-radius: 6px;
+    background-color: #0f172a;
+}
+.config-code {
+    font-size: 14px;
+    font-weight: 600;
+    color: #f8fafc;
+    text-align: center;
+}
+.config-inputs {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 15px;
+}
+.config-input-item {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+.config-input-item label {
+    font-size: 11px;
+    color: #94a3b8;
+}
+.config-input-item input {
+    padding: 6px 10px;
+    border-radius: 4px;
+    border: 1px solid #334155;
+    background-color: #1e293b;
+    color: #f8fafc;
+    font-size: 12px;
+}
+
+/* 關鍵字配置 */
+.keyword-modal-item {
+    display: grid;
+    grid-template-columns: 1fr 1fr auto;
+    gap: 10px;
+    align-items: center;
+    padding: 8px;
+    background: #1e293b;
+    border-radius: 6px;
+}
+.keyword-del-btn {
+    padding: 4px 8px;
+    background: #dc2626;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+}
+#addKeywordBtn {
+    padding: 8px;
+    background: #10b981;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    margin-bottom: 10px;
+    width: 100%;
+}
+
+.config-modal-save {
+    padding: 10px 20px;
+    background-color: #10b981;
+    color: #0f172a;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    width: 100%;
+}
+.config-modal-save:hover {
+    background-color: #059669;
+}
+</style>
+</head>
+<body>
+<button id="themeToggle">切換白天/黑夜</button>
+
+<div class="loading" id="loading"><div class="loading-spinner"></div></div>
+<div class="toast" id="toast"></div>
+
+<!-- 配置彈窗 -->
+<div class="config-modal" id="configModal">
+<div class="config-modal-content">
+<div class="config-modal-header">
+<div class="config-modal-title">編輯環節配置（Owner）</div>
+<div class="config-modal-actions">
+<button class="config-modal-reset" id="configModalReset">重置默認</button>
+<button class="config-modal-close" id="configModalClose">關閉</button>
+</div>
+</div>
+
+<div id="ownerConfigSection">
+<div class="config-modal-list" id="ownerConfigList"></div>
+</div>
+
+<hr style="margin:20px 0; border-color:#334">
+
+<div>
+<div style="font-size:14px; margin-bottom:10px; color:#f8fafc">專案名稱關鍵字對應後綴（可編輯/新增/刪除）</div>
+<button id="addKeywordBtn">+ 新增關鍵字</button>
+<div class="config-modal-list" id="keywordConfigList"></div>
+</div>
+
+<button class="config-modal-save" id="configModalSave">儲存所有設定</button>
+</div>
+</div>
+
+<div class="container">
+<div class="header">
+<h1>印尼廠區專案進度管理表 一鍵導入應用</h1>
+<p>上傳Excel文件 → 自動提取數據 → 按規則計算 → 導出符合要求的專案管理表</p>
+</div>
+
+<div class="upload-section">
+<input type="file" id="fileInput" accept=".xlsx,.xls">
+<button class="upload-btn" id="uploadBtn">📁 選擇Excel文件</button>
+<div class="upload-text">支援 .xlsx / .xls 格式，自動解析所有工作表</div>
+</div>
+
+<div class="config-section" id="configSection">
+<div class="config-title">⚙️ 處理規則配置</div>
+<div class="config-grid">
+<div class="config-item"><label>所屬地區</label><input type="text" id="region" value="印尼"></div>
+<div class="config-item">
+<label>解析模式</label>
+<div style="display: flex; align-items: center;">
+<select id="parseMode">
+<option value="todo">待辦工作進度表（預設）</option>
+<option value="second">各重點預案進度管理表</option>
+</select>
+<button class="config-edit-btn" id="configEditBtn">編輯環節配置</button>
+</div>
+</div>
+</div>
+
+<button class="process-btn" id="processBtn">🔄 開始處理數據</button>
+</div>
+
+<div class="preview-section" id="previewSection">
+<div class="preview-header">
+<div class="preview-title">📋 處理結果預覽</div>
+<button class="export-btn" id="exportBtn">📤 導出XLSX文件</button>
+</div>
+<div class="table-wrapper">
+<table class="preview-table" id="previewTable">
+<thead>
+<!-- 已按要求調整表頭：新增Project Name列，原追蹤項目列保留 -->
+<tr>
+<th>追蹤項目</th><th>所屬地區</th><th>Project ID</th><th>Project Name</th><th>Owner</th>
+<th>Plan Begin</th><th>Plan Finish</th><th>Plan days</th><th>Lasting days</th>
+<th>Status</th><th>Delay Days (Auto)</th><th>Delay Code</th>
+<th>Action Plan</th><th>Next Follow-up</th><th>Escalation</th>
+</tr>
+</thead>
+<tbody id="tableBody"></tbody>
+</table>
+</div>
+</div>
+</div>
+
+<script>
+let uploadedFile = null;
+let processedData = [];
+let templateWorkbook = null;
+
+// ========== 默認 Owner 配置 ==========
+const DEFAULT_OWNER = {
+    S1: "技術組", S2: "技術組", S3: "成本組", S4: "成本組",
+    S5: "成本組", S6: "技術組", S7: "內業組", S8: "內業",
+    S9: "技術組", S10: "技術組", S11: "技術組", S12: "技術組",
+    S13: "技術組", S14: "技術組"
+};
+
+// ========== 默認關鍵字配置 ==========
+const DEFAULT_KEYWORDS = [
+    { keyword: "配電", suffix: "MEP" },
+    { keyword: "消防", suffix: "FD" },
+    { keyword: "預設", suffix: "CVL" }
+];
+
+// ========== 解析模式對應的參數 ==========
+const PARSE_MODE_CONFIG = {
+    todo: {
+        name: "待辦工作進度表（預設）",
+        startRow: 4,
+        projectRowCount: 4,
+        firstStageCol: 3,
+        stageColStep: 3
+    },
+    second: {
+        name: "各重點預案進度管理表",
+        startRow: 4,
+        projectRowCount: 4,
+        firstStageCol: 3,
+        stageColStep: 3
+    }
+};
+
+let OWNER_CONFIG = JSON.parse(JSON.stringify(DEFAULT_OWNER));
+let KEYWORD_CONFIG = JSON.parse(JSON.stringify(DEFAULT_KEYWORDS));
+
+// 讀取本地儲存
+if (localStorage.getItem("OWNER_CONFIG")) {
+    OWNER_CONFIG = JSON.parse(localStorage.getItem("OWNER_CONFIG"));
+}
+if (localStorage.getItem("KEYWORD_CONFIG")) {
+    KEYWORD_CONFIG = JSON.parse(localStorage.getItem("KEYWORD_CONFIG"));
+}
+
+const FACTORY_MAP = {
+    "世川一廠": "F1", "世川二廠": "F2", "世川三廠": "F3",
+    "宇欣四廠": "F4", "世古五廠": "F5", "志川六廠": "F6"
+};
+
+const STAGE_CONFIG = [
+    { code: "S1", name: "评估报告/方案确认单" },
+    { code: "S2", name: "成本組协审單" },
+    { code: "S3", name: "成本組審價" },
+    { code: "S4", name: "成本組議價" },
+    { code: "S5", name: "成本組協審單" },
+    { code: "S6", name: "方案簽呈" },
+    { code: "S7", name: "合同用印申請單" },
+    { code: "S8", name: "合同用印蓋章" },
+    { code: "S9", name: "付款日期" },
+    { code: "S10", name: "施工进度" },
+    { code: "S11", name: "工厂验收" },
+    { code: "S12", name: "政府验收" },
+    { code: "S13", name: "廠驗交付" },
+    { code: "S14", name: "保固验收" },
+];
+
+function parseMyDate(v) {
+    if (!v || v === "" || v === "-" || v === "-----") return null;
+    let s = String(v).replace(/-----/g, "/").replace(/[\-—]/g, "/").trim();
+    let d = new Date(v);
+    if (isNaN(d) || d.getFullYear() < 2000 || d.getFullYear() > 2100) return null;
+    return d;
+}
+function fmt(d) {
+    if (!d) return "";
+    let y = d.getFullYear();
+    let m = String(d.getMonth() + 1).padStart(2, "0");
+    let day = String(d.getDate()).padStart(2, "0");
+    return `${y}/${m}/${day}`;
+}
+function days(a, b) {
+    if (!a || !b) return 0;
+    return Math.ceil((b - a) / 86400000);
+}
+
+function showLoading() { document.getElementById("loading").classList.add("show") }
+function hideLoading() { document.getElementById("loading").classList.remove("show") }
+function toast(msg, ok = true) {
+    let t = document.getElementById("toast");
+    t.textContent = msg;
+    t.className = `toast ${ok ? "toast-success" : "toast-error"} show`;
+    setTimeout(() => t.classList.remove("show"), 2000);
+}
+
+document.getElementById("themeToggle").onclick = () => {
+    document.body.classList.toggle("light");
+};
+
+document.getElementById("uploadBtn").onclick = () => {
+    document.getElementById("fileInput").click();
+};
+document.getElementById("fileInput").onchange = async (e) => {
+    let f = e.target.files[0];
+    if (!f) return;
+    if (!f.name.endsWith(".xlsx") && !f.name.endsWith(".xls")) {
+        toast("請上傳 xlsx", false); return;
+    }
+    uploadedFile = f;
+    let buf = await f.arrayBuffer();
+    templateWorkbook = XLSX.read(buf, { cellStyles: true });
+    document.getElementById("configSection").classList.add("show");
+    toast("已選擇：" + f.name);
+};
+
+// ====================== 配置彈窗 ======================
+document.getElementById("configEditBtn").onclick = renderConfigModal;
+document.getElementById("configModalClose").onclick = () => {
+    document.getElementById("configModal").classList.remove("show");
+};
+document.getElementById("configModalReset").onclick = () => {
+    if (confirm("確認重置所有配置？")) {
+        OWNER_CONFIG = JSON.parse(JSON.stringify(DEFAULT_OWNER));
+        KEYWORD_CONFIG = JSON.parse(JSON.stringify(DEFAULT_KEYWORDS));
+        localStorage.setItem("OWNER_CONFIG", JSON.stringify(OWNER_CONFIG));
+        localStorage.setItem("KEYWORD_CONFIG", JSON.stringify(KEYWORD_CONFIG));
+        renderConfigModal();
+        toast("已重置為默認");
+    }
+};
+
+function renderConfigModal() {
+    // Owner
+    let ownerList = document.getElementById("ownerConfigList");
+    ownerList.innerHTML = "";
+    for (let code in OWNER_CONFIG) {
+        let div = document.createElement("div");
+        div.className = "config-modal-item";
+        div.innerHTML = `
+            <div class="config-code">${code}</div>
+            <div class="config-inputs">
+                <div class="config-input-item">
+                    <label>Owner</label>
+                    <input type="text" value="${OWNER_CONFIG[code]}" data-code="${code}">
+                </div>
+            </div>
+        `;
+        ownerList.appendChild(div);
+    }
+
+    // Keyword
+    renderKeywordList();
+    document.getElementById("configModal").classList.add("show");
+}
+
+function renderKeywordList() {
+    let kwList = document.getElementById("keywordConfigList");
+    kwList.innerHTML = "";
+    KEYWORD_CONFIG.forEach((kw, idx) => {
+        let item = document.createElement("div");
+        item.className = "keyword-modal-item";
+        item.innerHTML = `
+            <input type="text" placeholder="關鍵字" value="${kw.keyword}" data-idx="${idx}">
+            <input type="text" placeholder="後綴" value="${kw.suffix}" data-idx="${idx}">
+            <button class="keyword-del-btn" data-idx="${idx}">刪除</button>
+        `;
+        kwList.appendChild(item);
+    });
+
+    document.querySelectorAll(".keyword-del-btn").forEach(b => {
+        b.onclick = () => {
+            let idx = +b.dataset.idx;
+            KEYWORD_CONFIG.splice(idx, 1);
+            renderKeywordList();
+        };
+    });
+}
+
+document.getElementById("addKeywordBtn").onclick = () => {
+    KEYWORD_CONFIG.push({ keyword: "", suffix: "" });
+    renderKeywordList();
+};
+
+document.getElementById("configModalSave").onclick = () => {
+    // 儲存 Owner
+    document.querySelectorAll("#ownerConfigList input").forEach(i => {
+        let code = i.dataset.code;
+        OWNER_CONFIG[code] = i.value.trim();
+    });
+
+    // 儲存 Keyword
+    let inputs = document.querySelectorAll("#keywordConfigList input");
+    let newKw = [];
+    for (let i = 0; i < inputs.length; i += 2) {
+        let kw = inputs[i].value.trim();
+        let sf = inputs[i + 1]?.value.trim() || "";
+        if (kw) newKw.push({ keyword: kw, suffix: sf });
+    }
+    KEYWORD_CONFIG = newKw;
+
+    localStorage.setItem("OWNER_CONFIG", JSON.stringify(OWNER_CONFIG));
+    localStorage.setItem("KEYWORD_CONFIG", JSON.stringify(KEYWORD_CONFIG));
+    document.getElementById("configModal").classList.remove("show");
+    toast("所有設定已儲存");
+};
+
+// ====================== 核心處理邏輯（完全在原基礎上，複用原邏輯） ======================
+document.getElementById("processBtn").onclick = async () => {
+    if (!uploadedFile) { toast("請上傳檔案", false); return; }
+    showLoading();
+    processedData = [];
+
+    try {
+        let buf = await uploadedFile.arrayBuffer();
+        let wb = XLSX.read(buf, { cellStyles: true });
+        let factoryCounter = {}; // F1:1, F2:1 ...
+
+        // 獲取當前選中的解析模式參數
+        let modeKey = document.getElementById("parseMode").value;
+        let modeConfig = PARSE_MODE_CONFIG[modeKey];
+        if (!modeConfig) modeConfig = PARSE_MODE_CONFIG.todo;
+
+        // 動態生成環節列配置，複用原邏輯
+        let CURRENT_STAGE_CONFIG = STAGE_CONFIG.map((st, idx) => ({
+            code: st.code,
+            name: st.name,
+            startCol: modeConfig.firstStageCol + idx * modeConfig.stageColStep
+        }));
+
+        for (let sheetName of wb.SheetNames) {
+            let ws = wb.Sheets[sheetName];
+            let json = XLSX.utils.sheet_to_json(ws, { header: 1, raw: false });
+            if (json.length < 10) continue;
+
+            // 廠區識別
+            let factoryName = sheetName.replace("印尼", "").replace("厂", "廠").trim();
+            let factoryCode = "F1";
+            for (let name in FACTORY_MAP) {
+                if (factoryName.includes(name)) {
+                    factoryCode = FACTORY_MAP[name];
+                    break;
+                }
+            }
+            if (!factoryCounter[factoryCode]) factoryCounter[factoryCode] = 1;
+
+            // 解析模式的行參數
+            const startRow = modeConfig.startRow;
+            const projectRows = modeConfig.projectRowCount;
+
+            for (let r = startRow; r < json.length; r += projectRows) {
+                let row = json[r];
+                if (!row || !row[0] || isNaN(row[0])) continue;
+                let projectName = (row[1] || "").trim();
+                let planRow = json[r];
+                let realRow = json[r + 1] || [];
+
+                // 找當前階段，原邏輯不變
+                let current = null;
+                for (let st of CURRENT_STAGE_CONFIG) {
+                    let fcol = st.startCol + 1;
+                    let v = realRow[fcol];
+                    if (!v || v === "" || v === "-") {
+                        current = st; break;
+                    }
+                }
+                if (!current) continue;
+
+                let scol = current.startCol;
+                let fcol = current.startCol + 1;
+                let dcol = current.startCol + 2;
+
+                let planStart = parseMyDate(planRow[scol]);
+                let planFinish = parseMyDate(planRow[fcol]);
+                let realStart = parseMyDate(realRow[scol]) || planStart;
+                let today = new Date();
+
+                let planDays = Number(planRow[dcol]) || 0;
+                if (planDays === 0 && planStart && planFinish) planDays = days(planStart, planFinish);
+                let lastingDays = realStart ? days(realStart, today) : 0;
+
+                let delayDays = lastingDays - planDays;
+                if (delayDays <= 0) delayDays = "";
+
+                // 你要求的Delay Code規則：只要有一個為空就標未填寫
+                let delayCode = "正常";
+                if (!planStart || !planFinish) {
+                    delayCode = "未填寫";
+                } else {
+                    // 原來的Delay Code邏輯
+                    if (delayDays > 0) delayCode = "延遲";
+                    else if (delayDays === "" && lastingDays <= -7) delayCode = "提前";
+                }
+
+                // Project ID 命名，原邏輯不變
+                let seq = factoryCounter[factoryCode]++;
+                let suffix = "CVL";
+                let upperName = projectName.toUpperCase();
+                for (let rule of KEYWORD_CONFIG) {
+                    if (!rule.keyword) continue;
+                    if (upperName.includes(rule.keyword.toUpperCase())) {
+                        suffix = rule.suffix;
+                        break;
+                    }
+                }
+                let projectId = `${factoryCode}-${seq}-${suffix}`;
+
+                // Owner 只走配置，原邏輯不變
+                let owner = OWNER_CONFIG[current.code] || "技術組";
+
+                // 按要求：trackProject 放到 Project Name，原追蹤項目列空
+                processedData.push({
+                    trackProject: "", // 原追蹤項目列跳過不寫，空
+                    projectName: factoryName + "｜" + projectName, // 原內容轉移到Project Name
+                    region: document.getElementById("region").value,
+                    projectId: projectId,
+                    owner: owner,
+                    planBegin: fmt(planStart),
+                    planFinish: fmt(planFinish),
+                    planDays: planDays,
+                    lastingDays: lastingDays,
+                    status: current.code,
+                    delayDays: delayDays,
+                    delayCode: delayCode
+                });
+            }
+        }
+
+        renderTable();
+        document.getElementById("previewSection").classList.add("show");
+        toast("完成：" + processedData.length + " 筆");
+    } catch (e) {
+        console.error(e);
+        toast("處理失敗", false);
+    } finally { hideLoading(); }
+};
+
+function renderTable() {
+    let tb = document.getElementById("tableBody");
+    tb.innerHTML = "";
+    processedData.forEach(item => {
+        // 對應狀態的樣式class
+        let cls = "status-normal";
+        if (item.delayCode === "延遲") cls = "status-delay";
+        else if (item.delayCode === "提前") cls = "status-early";
+        else if (item.delayCode === "未填寫") cls = "status-unfill";
+        
+        let tr = document.createElement("tr");
+        // 已按要求調整td順序：原追蹤項目空，新增Project Name列
+        tr.innerHTML = `
+<td>${item.trackProject}</td>
+<td>${item.region}</td>
+<td>${item.projectId}</td>
+<td>${item.projectName}</td>
+<td>${item.owner}</td>
+<td>${item.planBegin}</td>
+<td>${item.planFinish}</td>
+<td>${item.planDays}</td>
+<td>${item.lastingDays}</td>
+<td>${item.status}</td>
+<td>${item.delayDays}</td>
+<td><span class="status-badge ${cls}">${item.delayCode}</span></td>
+<td contenteditable></td>
+<td contenteditable></td>
+<td contenteditable></td>`;
+        tb.appendChild(tr);
+    });
+}
+
+// ====================== 匯出，已按要求調整列結構 ======================
+document.getElementById("exportBtn").onclick = () => {
+    if (processedData.length === 0) { toast("無資料", false); return; }
+    if (!templateWorkbook) { toast("請重新上傳文件", false); return; }
+
+    try {
+        let wb = XLSX.utils.book_new();
+        // 已按要求調整導出表頭
+        let ws = XLSX.utils.aoa_to_sheet([
+            ["追蹤項目", "所屬地區", "Project ID", "Project Name", "Owner", "Plan Begin", "Plan Finish",
+             "Plan days", "Lasting days", "Status", "Delay Days(Auto)", "Delay Code",
+             "Action Plan", "Next Follow-up", "Escalation"]
+        ]);
+
+        processedData.forEach(item => {
+            // 已按要求調整導出數據順序
+            XLSX.utils.sheet_add_aoa(ws, [[
+                item.trackProject, item.region, item.projectId, item.projectName, item.owner,
+                item.planBegin, item.planFinish, item.planDays, item.lastingDays,
+                item.status, item.delayDays, item.delayCode, "", "", ""
+            ]], { origin: -1 });
+        });
+
+        XLSX.utils.book_append_sheet(wb, ws, "專案進度");
+        XLSX.writeFile(wb, "印尼廠區專案進度表.xlsx");
+        toast("匯出成功");
+    } catch (e) {
+        console.error(e);
+        toast("匯出失敗", false);
+    }
+};
+</script>
+</body>
+</html>
